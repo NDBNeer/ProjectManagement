@@ -12,6 +12,8 @@ import ProjectContext, { fetchProjects } from "../State/ProjectContext.js";
 import TaskCard from "../Components/TaskCard.js";
 import AddTask from "../Components/AddTask.js";
 import { projectRouteURL } from "../constraints/urls.js";
+import { Storage } from "expo-storage";
+import { StackActions } from "@react-navigation/native";
 
 export default function ProjectScreen({ route, navigation }) {
   const { projectId } = route.params;
@@ -23,7 +25,7 @@ export default function ProjectScreen({ route, navigation }) {
     (project) => project._id === projectId
   );
   const [project, setProject] = React.useState(projects[projectIndex]);
-  //   console.log(project);
+  const [isUserAdmin, setIsUserAdmin] = React.useState(false);
 
   const renderItem = ({ item }) => (
     <TaskCard taskId={item._id} navigation={navigation} projectId={projectId} />
@@ -31,6 +33,16 @@ export default function ProjectScreen({ route, navigation }) {
 
   React.useEffect(() => {
     async function getProject() {}
+    async function getCurrentUser() {
+      const value = JSON.parse(await Storage.getItem({ key: "currentUser" }));
+      if (value != null) {
+        console.log(value.type);
+        value.type.toString() === "admin"
+          ? setIsUserAdmin(true)
+          : setIsUserAdmin(false);
+      }
+    }
+    getCurrentUser();
     getProject();
   }, []);
 
@@ -69,7 +81,7 @@ export default function ProjectScreen({ route, navigation }) {
             <Pressable
               className="h-10 rounded-md flex flex-row justify-center items-center p-2 ml-2"
               onPress={() => {
-                navigation.navigate("Dashboard");
+                navigation.dispatch(StackActions.replace("Dashboard"));
               }}
             >
               <Text className="text-blue-400 text-md font-medium">Home</Text>
@@ -96,6 +108,7 @@ export default function ProjectScreen({ route, navigation }) {
                 placeholder="Enter the project description"
                 multiline={true}
                 numberOfLines={4}
+                editable={isUserAdmin}
                 value={project.description}
                 onChangeText={(text) =>
                   setProject({ ...project, description: text })
@@ -111,6 +124,7 @@ export default function ProjectScreen({ route, navigation }) {
                 className="w-2/3 bg-white border border-slate-200 rounded-md h-12 px-4 mb-4"
                 placeholderTextColor="#000"
                 placeholder="Enter the start date"
+                editable={isUserAdmin}
                 value={project.startDate}
                 onChangeText={(text) =>
                   setProject({ ...project, startDate: text })
@@ -127,6 +141,7 @@ export default function ProjectScreen({ route, navigation }) {
                 className="w-2/3 bg-white border border-slate-200 rounded-md h-12 px-4 mb-4"
                 placeholderTextColor="#000"
                 placeholder="Enter the end date"
+                editable={isUserAdmin}
                 value={project.endDate}
                 onChangeText={(text) =>
                   setProject({ ...project, endDate: text })
@@ -161,23 +176,25 @@ export default function ProjectScreen({ route, navigation }) {
               />
             </View>
 
-            <Pressable
-              className="h-12 bg-purple-500 rounded-md flex flex-row justify-center items-center px-6 mt-4"
-              onPress={updateProject}
-            >
-              <View className="flex-1 flex items-center">
-                <Text className="text-white text-base font-medium">
-                  Update Project
-                </Text>
-              </View>
-            </Pressable>
+            {isUserAdmin ? (
+              <Pressable
+                className="h-12 bg-purple-500 rounded-md flex flex-row justify-center items-center px-6 mt-4"
+                onPress={updateProject}
+              >
+                <View className="flex-1 flex items-center">
+                  <Text className="text-white text-base font-medium">
+                    Update Project
+                  </Text>
+                </View>
+              </Pressable>
+            ) : null}
           </View>
         </View>
 
         {/* Create a divider */}
         <View className="w-full h-1 bg-slate-200" />
 
-        <AddTask projectId={projectId} />
+        {isUserAdmin ? <AddTask projectId={projectId} /> : null}
 
         {/* Create a divider */}
         <View className="w-full h-1 bg-slate-200" />

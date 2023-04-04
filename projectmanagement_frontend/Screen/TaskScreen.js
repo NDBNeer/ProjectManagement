@@ -12,11 +12,13 @@ import ProjectContext, { fetchProjects } from "../State/ProjectContext.js";
 import { StackActions } from "@react-navigation/native";
 import { Picker } from "@react-native-picker/picker";
 import { allUserRouteURL, taskRouteURL } from "../constraints/urls.js";
+import { Storage } from "expo-storage";
 
 export default function TaskScreen({ route, navigation }) {
   const { taskId, projectId } = route.params;
 
   const { projects, setProjects } = useContext(ProjectContext);
+  const [assosicatedTask, setAssosicatedTask] = React.useState("None");
 
   const projectIndex = projects.findIndex(
     (project) => project._id === projectId
@@ -40,6 +42,8 @@ export default function TaskScreen({ route, navigation }) {
       }),
   ]);
 
+  const [isUserAdmin, setIsUserAdmin] = React.useState(false);
+
   React.useEffect(() => {
     async function fetchAssignees() {
       const response = await fetch(allUserRouteURL, {
@@ -60,6 +64,17 @@ export default function TaskScreen({ route, navigation }) {
         });
       setAssignees([{ label: "None", value: null }, ...assignees]);
     }
+    async function getCurrentUser() {
+      const value = JSON.parse(await Storage.getItem({ key: "currentUser" }));
+      if (value != null) {
+        console.log(value.type);
+        value.type.toString() === "admin"
+          ? setIsUserAdmin(true)
+          : setIsUserAdmin(false);
+      }
+    }
+    getCurrentUser();
+
     fetchAssignees();
   }, []);
 
@@ -69,8 +84,9 @@ export default function TaskScreen({ route, navigation }) {
       description: task.description,
       startDate: task.startDate,
       endDate: task.endDate,
+      status: task.status,
       assignee: task.assignee,
-      assosiateTasks: task.assosiateTasks,
+      assosicatedTask: task.assosicatedTask,
       hourlyRate: task.hourlyRate,
       totalHoursWorked: task.totalHoursWorked,
       project: projectId,
@@ -141,6 +157,7 @@ export default function TaskScreen({ route, navigation }) {
                 onChangeText={(text) => {
                   setTask({ ...task, description: text });
                 }}
+                editable={isUserAdmin}
               />
             </View>
 
@@ -153,6 +170,7 @@ export default function TaskScreen({ route, navigation }) {
                 placeholderTextColor="#000"
                 placeholder="Enter the start date"
                 value={task.startDate}
+                editable={isUserAdmin}
                 onChangeText={(text) => {
                   setTask({ ...task, startDate: text });
                 }}
@@ -191,49 +209,95 @@ export default function TaskScreen({ route, navigation }) {
                 </Picker>
               </View>
             </View>
-            <View className="flex flex-row items-center justify-center">
-              <Text className="w-1/3 text-sm font-bold mb-6 text-slate-900">
-                Associated Task
-              </Text>
-              <View className="m-1 w-2/3 z-50">
-                <Picker
-                  selectedValue={task.status}
-                  onValueChange={(itemValue, itemIndex) =>
-                    setTask({ ...task, status: itemValue })
-                  }
-                >
-                  {assosiateTasks.map((assosiateTask) => (
-                    <Picker.Item
-                      label={assosiateTask.label}
-                      value={assosiateTask.value}
-                      key={assosiateTask.value}
-                    />
-                  ))}
-                </Picker>
-              </View>
-            </View>
 
-            <View className="flex flex-row items-center justify-center">
-              <Text className="w-1/3 text-sm font-bold mb-6 text-slate-900">
-                Assignee
-              </Text>
-              <View className="m-1 w-2/3 z-50">
-                <Picker
-                  selectedValue={task.status}
-                  onValueChange={(itemValue, itemIndex) =>
-                    setTask({ ...task, status: itemValue })
-                  }
-                >
-                  {assignees.map((assignee) => (
-                    <Picker.Item
-                      label={assignee.label}
-                      value={assignee.value}
-                      key={assignee.value}
-                    />
-                  ))}
-                </Picker>
+            {isUserAdmin ? (
+              <View className="flex flex-row items-center justify-center">
+                <Text className="w-1/3 text-sm font-bold mb-6 text-slate-900">
+                  Associated Task
+                </Text>
+                <View className="m-1 w-2/3 z-50">
+                  <Picker
+                    selectedValue={
+                      task.assosicatedTask ? task.assosicatedTask : "None"
+                    }
+                    onValueChange={(itemValue, itemIndex) =>
+                      setTask({ ...task, assosicatedTask: itemValue })
+                    }
+                  >
+                    {assosiateTasks.map((assosiateTask) => (
+                      <Picker.Item
+                        label={assosiateTask.label}
+                        value={assosiateTask.value}
+                        key={assosiateTask.value}
+                      />
+                    ))}
+                  </Picker>
+                </View>
               </View>
-            </View>
+            ) : assosiateTasks.length > 0 ? (
+              <View className="flex flex-row items-center justify-center">
+                <Text className="w-1/3 text-sm font-bold mb-6 text-slate-900">
+                  Associated Task
+                </Text>
+                <TextInput
+                  className="w-2/3 bg-white border border-slate-200 rounded-md h-12 px-4 mb-4"
+                  placeholderTextColor="#000"
+                  placeholder="No Associated Task"
+                  editable={false}
+                  value={task.assosicatedTask}
+                ></TextInput>
+              </View>
+            ) : null}
+
+            {isUserAdmin ? (
+              <View className="flex flex-row items-center justify-center">
+                <Text className="w-1/3 text-sm font-bold mb-6 text-slate-900">
+                  Assignee
+                </Text>
+                <View className="m-1 w-2/3 z-50">
+                  <Picker
+                    selectedValue={task.assignee ? task.assignee : "None"}
+                    onValueChange={(itemValue, itemIndex) =>
+                      setTask({ ...task, assignee: itemValue })
+                    }
+                  >
+                    {assignees.map((assignee) => (
+                      <Picker.Item
+                        label={assignee.label}
+                        value={assignee.value}
+                        key={assignee.value}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+            ) : null}
+
+            {/* {task.assignee?.length > 0 && !isUserAdmin ? (
+              <View className="flex flex-row items-center justify-center">
+                <Text className="w-1/3 text-sm font-bold mb-6 text-slate-900">
+                  Assignee
+                </Text>
+                <View className="m-1 w-2/3 z-50">
+                  <Picker
+                    selectedValue={task.status}
+                    onValueChange={(itemValue, itemIndex) =>
+                      setTask({ ...task, status: itemValue })
+                    }
+                  >
+                    {isUserAdmin
+                      ? assignees.map((assignee) => (
+                          <Picker.Item
+                            label={assignee.label}
+                            value={assignee.value}
+                            key={assignee.value}
+                          />
+                        ))
+                      : null}
+                  </Picker>
+                </View>
+              </View>
+            ) : null} */}
 
             <View className="flex flex-row items-center justify-center">
               <Text className="w-1/3 text-sm font-bold mb-6 text-slate-900">

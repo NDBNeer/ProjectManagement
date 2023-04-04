@@ -32,6 +32,10 @@ export default function AddUser() {
         // checking the status of the response
         if (data.status === 200) {
           console.log(data);
+          alert("User Added");
+          setName("");
+          setEmail("");
+          setPassword("");
         } else {
           console.log(data.message);
           alert(data.message);

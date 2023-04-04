@@ -3,10 +3,13 @@ import { View, Text, Pressable, TextInput } from "react-native";
 import { projectRouteURL } from "../constraints/urls";
 import ProjectContext, { fetchProjects } from "../State/ProjectContext.js";
 import { StackActions } from "@react-navigation/native";
+import { Storage } from "expo-storage";
 
 export default function ProjectCard({ navigation, projectId }) {
   const { projects, setProjects } = useContext(ProjectContext);
   const [project, setProject] = useState(null);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
+  const [isProjectLate, setIsProjectLate] = useState(false);
 
   React.useEffect(() => {
     async function getProject() {
@@ -14,7 +17,22 @@ export default function ProjectCard({ navigation, projectId }) {
       // looping through projects and checking if the project id matches the id of the project we are looking for
       const project = projects.find((project) => project._id === projectId);
       setProject(project);
+      // if project end date has less than 7 days left, set isProjectLate to true
+      if (new Date(project.endDate) - Date.now() < 604800000) {
+        console.log("project is late");
+        setIsProjectLate(true);
+      }
     }
+    async function getCurrentUser() {
+      const value = JSON.parse(await Storage.getItem({ key: "currentUser" }));
+      if (value != null) {
+        console.log(value.type);
+        value.type.toString() === "admin"
+          ? setIsUserAdmin(true)
+          : setIsUserAdmin(false);
+      }
+    }
+    getCurrentUser();
     getProject();
   }, []);
 
@@ -61,25 +79,35 @@ export default function ProjectCard({ navigation, projectId }) {
           >
             <View className="flex-1 flex items-center">
               <Text className="text-white text-center text-xs font-medium w-12">
-                Edit
+                {isUserAdmin ? "Edit" : "View"}
               </Text>
             </View>
           </Pressable>
-          <Pressable
-            className="h-12 bg-red-500 rounded-md flex flex-row justify-center items-center px-6"
-            onPress={deleteProject}
-          >
-            <View className="flex-1 flex items-center">
-              <Text className="text-white text-center text-xs font-medium w-12">
-                Delete
-              </Text>
-            </View>
-          </Pressable>
+          {isUserAdmin ? (
+            <Pressable
+              className="h-12 bg-red-500 rounded-md flex flex-row justify-center items-center px-6"
+              onPress={deleteProject}
+            >
+              <View className="flex-1 flex items-center">
+                <Text className="text-white text-center text-xs font-medium w-12">
+                  Delete
+                </Text>
+              </View>
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
       {/* Create a divider */}
-      <View className="w-full h-1 bg-slate-200" />
+      <View
+        className={
+          isProjectLate
+            ? "w-full h-1 bg-red-500"
+            : project?.status === "Completed"
+            ? "w-full h-1 bg-green-500"
+            : "w-full h-1 bg-yellow-500"
+        }
+      />
 
       {/* Create a Row to show start date, end date status and overall cost of the project */}
       <View className="flex flex-row w-full items-stretch justify-evenly bg-white rounded-md p-4 mb-4">
@@ -99,9 +127,7 @@ export default function ProjectCard({ navigation, projectId }) {
         <View className="flex flex-col items-center justify-center">
           <View className="flex flex-col border-2 border-slate-100 p-3 items-center justify-center">
             <Text className="text-md font-bold text-slate-900">End Date</Text>
-            <Text className="text-base text-slate-900">
-              {project?.startDate}
-            </Text>
+            <Text className="text-base text-slate-900">{project?.endDate}</Text>
           </View>
           <View className="flex flex-col border-2 border-slate-100 p-3 items-center justify-center mt-2">
             <Text className="text-md font-bold text-slate-900">Cost</Text>

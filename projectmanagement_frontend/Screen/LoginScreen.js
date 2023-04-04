@@ -8,19 +8,6 @@ export default function LoginScreen({ route, navigation }) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
 
-  React.useEffect(() => {
-    async function getCurrentUser() {
-      const value = JSON.parse(await Storage.getItem({ key: "currentUser" }));
-      if (value != null) {
-        console.log(value.type);
-        value.type.toString() === "admin"
-          ? navigation.dispatch(StackActions.replace("AdminDashboard"))
-          : navigation.dispatch(StackActions.replace("Dashboard"));
-      }
-    }
-    getCurrentUser();
-  }, []);
-
   async function setCurrentUser(userData) {
     await Storage.setItem({
       key: "currentUser",
@@ -87,21 +74,8 @@ export default function LoginScreen({ route, navigation }) {
           onChangeText={(text) => setPassword(text)}
         />
 
-        <View className="flex flex-row justify-between items-center my-8">
-          <View className="flex-row items-center">
-            <Pressable className="bg-white border border-slate-200 h-6 w-6 rounded-sm mr-2 flex items-center justify-center">
-              {/* selected state */}
-              <View className="bg-green-400 w-4 h-4 rounded-sm" />
-            </Pressable>
-            <Text className="text-slate-900">Remember me</Text>
-          </View>
-          <Pressable>
-            <Text className="text-blue-400 font-bold">Reset password</Text>
-          </Pressable>
-        </View>
-
         <Pressable
-          className="h-12 bg-purple-500 rounded-md flex flex-row justify-center items-center px-6"
+          className="h-12 bg-purple-500 rounded-md flex flex-row justify-center items-center px-6 mt-4"
           onPress={login}
         >
           <View className="flex-1 flex items-center">

@@ -18,7 +18,7 @@ function App() {
   return (
     <ProjectContext.Provider value={{ projects, setProjects }}>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="LoginScreen">
+        <Stack.Navigator initialRouteName="Dashboard">
           <Stack.Screen
             name="LoginScreen"
             component={LoginScreen}
